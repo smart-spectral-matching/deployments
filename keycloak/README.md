@@ -1,10 +1,14 @@
-Building:
-
-docker build -t keycloak --build-arg GOOGLE_CLIENT_ID=YOUR_GOOGLE_CLIENT_ID --build-arg GOOGLE_SECRET=YOUR_GOOGLE_CLIENT_SECRET --build-arg LDAP_URL=YOUR_LDAP_URL --build-arg USERSDN=YOUR_USER_DN .
-
 Running:
 
-docker run -p 8081:8080 -e KEYCLOAK_ADMIN=admin -e KEYCLOAK_ADMIN_PASSWORD=admin --rm --name=keycloack  keycloak
+docker-compose up
+
+Configuring:
+
+Remove FEDERATE_LDAP to turn off user federation. LDAP_URL and USERDN must be configured for federation.
+
+Remove GOOGLE_IDP to prevent users from loggin in with Google accounts. GOOGLE_CLIENT_ID and GOOGLE_SECRET must be set for Google authentication.
+
+To configure as a production server, uncomment HTTPS and set HOSTNAME correctly.
 
 
 
