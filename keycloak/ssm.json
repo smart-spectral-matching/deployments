@@ -601,7 +601,7 @@
     "alwaysDisplayInConsole" : false,
     "clientAuthenticatorType" : "client-secret",
     "secret" : "AocSmf4q3B0UdhessSMft1cecAMp37S8",
-    "redirectUris" : [ "http://localhost:8080/machine-learning/login/oauth2/code/keycloak", "http://localhost:8080/machine-learning/" ],
+    "redirectUris" : [ "http://localhost:8080/machine-learning/login/oauth2/code/keycloak", "http://localhost:8080/machine-learning/", "http://localhost:8082/api/login/oauth2/code/keycloak", "http://localhost:8083/machine-learning/login/oauth2/code/keycloak", "http://localhost:8084/api/login/oauth2/code/keycloak" ],
     "webOrigins" : [ ],
     "notBefore" : 0,
     "bearerOnly" : false,
