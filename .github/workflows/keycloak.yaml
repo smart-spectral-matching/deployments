@@ -21,7 +21,9 @@ jobs:
         uses: actions/checkout@v3
       - 
         name: Build keycloak contianer
-        run: docker build -t ssm-keycloak .
+        run: |
+          cd keycloak
+          docker build -t ssm-keycloak .
 
   publish-container-image:
     strategy:
@@ -51,7 +53,8 @@ jobs:
         name: Build and push keycloak image
         uses: docker/build-push-action@v4
         with:
-          context: .
+          context: ./keycloak
+          file: ./keycloak/Dockerfile
           push: true 
           platforms: linux/amd64,linux/arm64
           tags: ghcr.io/smart-spectral-matching/ssm-keycloak:${{ github.ref_name }}-${{github.sha}}
