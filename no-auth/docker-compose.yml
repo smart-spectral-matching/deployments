@@ -1,0 +1,38 @@
+version: "3.7"
+
+services:
+  ssm-service-catalog-graph-db:
+    image: ghcr.io/smart-spectral-matching/ssm-service-catalog-graph-db:15-add-apache-jena-fuseki-triple-store-database-image-to-cd-d6b3c36dcf8f9df7ee11cb3503948b6fa7ae0708
+    restart: unless-stopped
+    volumes:
+      - ./catalog-graph-db/databases:/opt/apache-jena-fuseki/run/databases
+      - ./catalog-graph-db/backups:/opt/apache-jena-fuseki/run/backups
+      - ./catalog-graph-db/configuration:/opt/apache-jena-fuseki/run/configuration
+      - ./catalog-graph-db/logs:/opt/apache-jena-fuseki/run/logs
+      - ./catalog-graph-db/system:/opt/apache-jena-fuseki/run/system
+      - ./catalog-graph-db/system_files:/opt/apache-jena-fuseki/run/system_files
+      - ./catalog-graph-db/templates:/opt/apache-jena-fuseki/run/templates
+
+  ssm-service-catalog-document-store:
+    image: mongo:4
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    volumes:
+      - ./catalog-document-store:/data/db
+  
+  ssm-service-file-converter:
+    image: ghcr.io/smart-spectral-matching/ssm-service-file-converter:v0.2.0
+    ports:
+      - "8000:8000"
+
+  ssm-service-catalog:
+    image: ghcr.io/smart-spectral-matching/ssm-service-catalog:main-f0eed18aba1420ec94482f5b8e99771428a1c372
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on: 
+      - ssm-service-catalog-graph-db
+      - ssm-service-catalog-document-store
+    command: "java -jar /app.jar -Dspring.profiles.active=localdockerfileconverter --app.jsonconversion=file_converter_service --spring.data.mongodb.host=ssm-service-catalog-document-store --app.fuseki.hostname=http://ssm-service-catalog-graph-db --app.fileconverter.uri=http://ssm-service-file-converter:8000 --app.host=$APP_PROTOCOL://$APP_HOSTNAME --spring.data.mongodb.username=$MONGO_USERNAME --spring.data.mongodb.password=$MONGO_PASSWORD"
