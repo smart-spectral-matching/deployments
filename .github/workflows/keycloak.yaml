@@ -60,4 +60,3 @@ jobs:
           tags: |
             ghcr.io/smart-spectral-matching/ssm-keycloak:${{ github.ref_name }}-latest
             ghcr.io/smart-spectral-matching/ssm-keycloak:${{ github.ref_name }}-${{github.sha}}
-            ghcr.io/smart-spectral-matching/ssm-keycloak:${{ github.ref_name }}-${{github.sha}}
