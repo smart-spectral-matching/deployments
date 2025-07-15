@@ -1,13 +1,18 @@
 services:
-#  ssm-ui-catalog:
-#    image: ssm-ui-catalog
-#    restart: unless-stopped
-#    environment:
-#      API_URL: "http://localhost:8080/catalog/api"
-#      FILE_CONVERTER_URL: "http://localhost:8080/file-converter/convert/jsonld"
-#    depends_on:
-#      - ssm-service-catalog
-#      - ssm-service-file-converter
+  ssm-ui-catalog:
+    image: ssm-ui-catalog
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      CHOKIDAR_USEPOLLING: 'true'
+      REACT_APP_API_URL: "http://localhost:8080/catalog/api"
+      REACT_APP_FILE_CONVERTER_URL: "http://localhost:8080/file-converter"
+      REACT_APP_ML_NOTEBOOKS_URL: "http://localhost:8080/notebooks"
+      REACT_APP_ML_UI_URL: "http://localhost:8082/machine-learning"
+    depends_on:
+      - ssm-service-catalog
+      - ssm-service-file-converter
 
   ssm-ui-ml:
     image: ssm-ui-ml
@@ -15,6 +20,19 @@ services:
     network_mode: "host"  # port = 8082
     environment:
       PROFILE: "dev"
+      ML_DATABASE_HOST: "localhost"
+      ML_DATABASE_PORT: 5432
+      ML_DATABASE_NAME: "ssm"
+      ML_DATABASE_USER: "ssm"
+      ML_DATABASE_PASSWORD: "password"
+
+  ssm-service-ml-database:
+    image: ssm-service-ml-db
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: password
 
   ssm-keycloak:
     image: ssm-keycloak
@@ -49,7 +67,7 @@ services:
       - "./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro"
       - "./haproxy/lib/cors.lua:/etc/haproxy/cors.lua"
     depends_on:
-      - ssm-ui-ml
+      #- ssm-ui-ml
       - ssm-service-catalog
       - ssm-service-file-converter
 
@@ -99,8 +117,4 @@ services:
     image: ssm-file-converter
     command: ["/usr/src/api/.venv/bin/uvicorn", "src.ssm_file_converter.app:app", "--host=0.0.0.0", "--root-path", "/file-converter"] 
  
-  ssm-service-ml-database:
-    image: ssm-service-ml-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_PASSWORD: password
+
