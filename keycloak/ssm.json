@@ -612,7 +612,7 @@
 		"http://ssm-dev.ornl.gov:8080/api/login/oauth2/code/keycloak",
 		"http://ssm-dev.ornl.gov/machine-learning/login/oauth2/code/keycloak", 
 		"http://ssm-dev.ornl.gov/machine-learning/", 
-		"http://ssm-dev.ornl.gov/api/login/oauth2/code/keycloak"
+		"http://ssm-dev.ornl.gov/api/login/oauth2/code/keycloak",
 		"https://ssm-dev.ornl.gov/machine-learning/login/oauth2/code/keycloak", 
 		"https://ssm-dev.ornl.gov/machine-learning/", 
 		"https://ssm-dev.ornl.gov/api/login/oauth2/code/keycloak"  ],
