@@ -12,8 +12,8 @@ if [[ -n "${GOOGLE_IDP}" ]]; then
 fi
 /opt/keycloak/bin/kc.sh import --file /ssm.json --override true
 if [[ -n "${HTTPS}" ]]; then
-	/opt/keycloak/bin/kc.sh start --db ${KC_DB} --db-url ${KC_DB_URL} --db-username ${KC_DB_USERNAME} --db-password ${KC_DB_PASSWORD} --hostname ${HOSTNAME} --http-enabled=true --https-key-store-file=conf/server.keystore
+	/opt/keycloak/bin/kc.sh start --db ${KC_DB} --db-url ${KC_DB_URL} --db-username ${KC_DB_USERNAME} --db-password ${KC_DB_PASSWORD} --hostname ${HOSTNAME} --http-relative-path ${RELATIVE_PATH} --https-key-store-file=conf/server.keystore
 else
-	/opt/keycloak/bin/kc.sh start-dev --db ${KC_DB} --db-url ${KC_DB_URL} --db-username ${KC_DB_USERNAME} --db-password ${KC_DB_PASSWORD} --hostname ${HOSTNAME} --http-enabled=true --https-key-store-file=conf/server.keystore
+	/opt/keycloak/bin/kc.sh start-dev --db ${KC_DB} --db-url ${KC_DB_URL} --db-username ${KC_DB_USERNAME} --db-password ${KC_DB_PASSWORD} --hostname ${HOSTNAME} --http-relative-path ${RELATIVE_PATH} --http-enabled=true --https-key-store-file=conf/server.keystore
 fi
 
