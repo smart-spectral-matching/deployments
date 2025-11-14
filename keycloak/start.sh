@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Get the directory this script lives in
+# ---------------------------
+# Directories & files
+# ---------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# Absolute paths
 SSM_FILE="${SCRIPT_DIR}/realm_files/ssm.json"
 LDAP_TEMPLATE_JSON="${SCRIPT_DIR}/realm_files/ldap-template.json"
 GOOGLE_TEMPLATE_JSON="${SCRIPT_DIR}/realm_files/google-template.json"
 TMP_FILE="$(mktemp)"
 
-# Load environment variables
+# ---------------------------
+# Environment variables
+# ---------------------------
 : "${FEDERATE_LDAP:=}"
 : "${LDAP_URL:=}"
 : "${USERSDN:=}"
@@ -18,62 +20,77 @@ TMP_FILE="$(mktemp)"
 : "${GOOGLE_CLIENT_ID:=}"
 : "${GOOGLE_SECRET:=}"
 : "${DEV_MODE:=false}"
+: "${KC_DB:=postgres}"
+: "${KC_DB_URL:=jdbc:postgresql://ssm-postgres:5432/postgres}"
+: "${KC_DB_USERNAME:=postgres}"
+: "${KC_DB_PASSWORD:=postgres}"
+: "${HOSTNAME:=localhost}"
+: "${RELATIVE_PATH:=}"
+: "${HTTP_ENABLED:=true}"
 
-# Function to patch LDAP block
+# ---------------------------
+# Functions
+# ---------------------------
 patch_ldap() {
-  jq --arg ldapUrl "${LDAP_URL}" \
-     --arg usersDn "${USERSDN}" \
-     --slurpfile ldapTpl "${LDAP_TEMPLATE_JSON}" \
-     '.["org.keycloak.storage.UserStorageProvider"] = [
-         ($ldapTpl[0] |
-           .config.usersDn = [$usersDn] |
-           .config.connectionUrl = [$ldapUrl])
-       ]' \
-     "${SSM_FILE}" > "${TMP_FILE}"
-  mv "${TMP_FILE}" "${SSM_FILE}"
-  echo "→ Patched LDAP configuration"
+    echo "→ Patching LDAP configuration..."
+    jq --arg ldapUrl "$LDAP_URL" \
+    --arg usersDn "$USERSDN" \
+    --slurpfile ldapTpl "$LDAP_TEMPLATE_JSON" \
+    '.components = [
+        ($ldapTpl[0] |
+            .config.usersDn = [$usersDn] |
+            .config.connectionUrl = [$ldapUrl])
+    ]' \
+    "$SSM_FILE" > "$TMP_FILE"
+    echo "✔ LDAP patched"
 }
 
-# Function to patch Google IdP block
 patch_google() {
-  jq --arg clientId "${GOOGLE_CLIENT_ID}" \
-     --arg secret "${GOOGLE_SECRET}" \
-     --slurpfile googleTpl "${GOOGLE_TEMPLATE_JSON}" \
-     '.["identityProviders"] = [
-         ($googleTpl[0] |
-           .config.clientId = $clientId |
-           .config.clientSecret = $secret)
+    echo "→ Patching Google IdP..."
+    jq --arg clientId "$GOOGLE_CLIENT_ID" \
+       --arg secret "$GOOGLE_SECRET" \
+       --slurpfile googleTpl "$GOOGLE_TEMPLATE_JSON" \
+       '.identityProviders = [
+           ($googleTpl[0] |
+             .config.clientId = $clientId |
+             .config.clientSecret = $secret)
        ]' \
-     "${SSM_FILE}" > "${TMP_FILE}"
-  mv "${TMP_FILE}" "${SSM_FILE}"
-  echo "→ Patched Google IdP configuration"
+       "$SSM_FILE" > "$TMP_FILE"
+    mv "$TMP_FILE" "$SSM_FILE"
+    echo "✔ Google IdP patched"
 }
 
+# ---------------------------
 # Main logic
-if [[ -n "${FEDERATE_LDAP}" ]]; then
-  patch_ldap
-fi
-
-if [[ -n "${GOOGLE_IDP}" ]]; then
-  patch_google
-fi
+# ---------------------------
+[[ -n "$FEDERATE_LDAP" ]] && patch_ldap
+[[ -n "$GOOGLE_IDP" ]] && patch_google
 
 echo "✔ ssm.json updated successfully"
 
-# Import realms JSON
-/opt/keycloak/bin/kc.sh import --file "${SSM_FILE}" --override true
+# ---------------------------
+# Import realms
+# ---------------------------
+echo "→ Validating realm JSON..."
+if ! jq empty "$SSM_FILE" >/dev/null 2>&1; then
+    echo "ERROR: $SSM_FILE contains invalid JSON. Aborting import." >&2
+    exit 1
+fi
 
-# Decide on Keycloak start command (dev-mode or normal)
+echo "→ Importing realm configuration..."
+/opt/keycloak/bin/kc.sh import --file "$SSM_FILE" --override true
+
+# ---------------------------
+# Start Keycloak
+# ---------------------------
 cmd="start"
 [[ "${DEV_MODE,,}" == "true" ]] && cmd="start-dev"
 
-# Start server
 exec /opt/keycloak/bin/kc.sh "$cmd" \
-  --db "${KC_DB}" \
-  --db-url "${KC_DB_URL}" \
-  --db-username "${KC_DB_USERNAME}" \
-  --db-password "${KC_DB_PASSWORD}" \
-  --hostname "${HOSTNAME}" \
-  --http-relative-path "${RELATIVE_PATH}" \
-  --http-enabled="${HTTP_ENABLED}" \
-  --https-key-store-file=conf/server.keystore
+    --db "${KC_DB}" \
+    --db-url "${KC_DB_URL}" \
+    --db-username "${KC_DB_USERNAME}" \
+    --db-password "${KC_DB_PASSWORD}" \
+    --hostname "${HOSTNAME}" \
+    --http-relative-path "${RELATIVE_PATH}" \
+    --http-enabled="${HTTP_ENABLED}"
