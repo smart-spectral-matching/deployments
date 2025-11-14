@@ -32,3 +32,17 @@ jobs:
             echo "Validating $f"
             jq empty "$f"
           done
+
+      - name: Generate patched ssm.json and validate
+        if: always()
+        run: |
+          set -euo pipefail
+          # If the generator exists, run it and validate the resulting JSON
+          if [ -x scripts/generate_ssm.sh ]; then
+            echo "Generating patched ssm.json (no env vars set)"
+            scripts/generate_ssm.sh > /tmp/ssm.generated.json
+            echo "Validating generated ssm.json"
+            jq empty /tmp/ssm.generated.json
+          else
+            echo "No generator script found; skipping generated ssm.json validation"
+          fi

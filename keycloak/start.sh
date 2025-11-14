@@ -29,44 +29,14 @@ TMP_FILE="$(mktemp)"
 : "${HTTP_ENABLED:=true}"
 
 # ---------------------------
-# Functions
+# Generate combined ssm.json from templates (if any) then write it
+# to the repository path expected by the import step. We use the
+# helper `scripts/generate_ssm.sh` so CI can reproduce the same
+# output without starting Keycloak.
 # ---------------------------
-patch_ldap() {
-    echo "→ Patching LDAP configuration..."
-    jq --arg ldapUrl "$LDAP_URL" \
-    --arg usersDn "$USERSDN" \
-    --slurpfile ldapTpl "$LDAP_TEMPLATE_JSON" \
-    '.components = [
-        ($ldapTpl[0] |
-            .config.usersDn = [$usersDn] |
-            .config.connectionUrl = [$ldapUrl])
-    ]' \
-    "$SSM_FILE" > "$TMP_FILE"
-    echo "✔ LDAP patched"
-}
-
-patch_google() {
-    echo "→ Patching Google IdP..."
-    jq --arg clientId "$GOOGLE_CLIENT_ID" \
-       --arg secret "$GOOGLE_SECRET" \
-       --slurpfile googleTpl "$GOOGLE_TEMPLATE_JSON" \
-       '.identityProviders = [
-           ($googleTpl[0] |
-             .config.clientId = $clientId |
-             .config.clientSecret = $secret)
-       ]' \
-       "$SSM_FILE" > "$TMP_FILE"
-    mv "$TMP_FILE" "$SSM_FILE"
-    echo "✔ Google IdP patched"
-}
-
-# ---------------------------
-# Main logic
-# ---------------------------
-[[ -n "$FEDERATE_LDAP" ]] && patch_ldap
-[[ -n "$GOOGLE_IDP" ]] && patch_google
-
-echo "✔ ssm.json updated successfully"
+echo "→ Generating patched ssm.json from templates (if any)..."
+"${SCRIPT_DIR}/scripts/generate_ssm.sh" > "$SSM_FILE"
+echo "✔ ssm.json generated"
 
 # ---------------------------
 # Import realms
