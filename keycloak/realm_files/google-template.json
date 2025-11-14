@@ -1,0 +1,23 @@
+{
+  "alias": "google",
+  "internalId": "39e6aad7-de24-475e-af7a-c3f35a9cf7e3",
+  "providerId": "google",
+  "enabled": true,
+  "updateProfileFirstLoginMode": "on",
+  "trustEmail": false,
+  "storeToken": false,
+  "addReadTokenRoleOnCreate": false,
+  "authenticateByDefault": false,
+  "linkOnly": false,
+  "firstBrokerLoginFlowAlias": "first broker login",
+  "config": {
+    "hideOnLoginPage": "false",
+    "offlineAccess": "false",
+    "acceptsPromptNoneForwardFromClient": "false",
+    "clientId": "GOOGLE_CLIENT_ID_REPLACEMENT",
+    "disableUserInfo": "false",
+    "syncMode": "IMPORT",
+    "userIp": "false",
+    "clientSecret": "GOOGLE_SECRET_REPLACEMENT"
+  }
+}

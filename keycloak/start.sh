@@ -1,19 +1,79 @@
+#!/usr/bin/env bash
+set -euo pipefail
 
+# Get the directory this script lives in
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Absolute paths
+SSM_FILE="${SCRIPT_DIR}/realm_files/ssm.json"
+LDAP_TEMPLATE_JSON="${SCRIPT_DIR}/realm_files/ldap-template.json"
+GOOGLE_TEMPLATE_JSON="${SCRIPT_DIR}/realm_files/google-template.json"
+TMP_FILE="$(mktemp)"
+
+# Load environment variables
+: "${FEDERATE_LDAP:=}"
+: "${LDAP_URL:=}"
+: "${USERSDN:=}"
+: "${GOOGLE_IDP:=}"
+: "${GOOGLE_CLIENT_ID:=}"
+: "${GOOGLE_SECRET:=}"
+: "${DEV_MODE:=false}"
+
+# Function to patch LDAP block
+patch_ldap() {
+  jq --arg ldapUrl "${LDAP_URL}" \
+     --arg usersDn "${USERSDN}" \
+     --slurpfile ldapTpl "${LDAP_TEMPLATE_JSON}" \
+     '.["org.keycloak.storage.UserStorageProvider"] = [
+         ($ldapTpl[0] |
+           .config.usersDn = [$usersDn] |
+           .config.connectionUrl = [$ldapUrl])
+       ]' \
+     "${SSM_FILE}" > "${TMP_FILE}"
+  mv "${TMP_FILE}" "${SSM_FILE}"
+  echo "→ Patched LDAP configuration"
+}
+
+# Function to patch Google IdP block
+patch_google() {
+  jq --arg clientId "${GOOGLE_CLIENT_ID}" \
+     --arg secret "${GOOGLE_SECRET}" \
+     --slurpfile googleTpl "${GOOGLE_TEMPLATE_JSON}" \
+     '.["identityProviders"] = [
+         ($googleTpl[0] |
+           .config.clientId = $clientId |
+           .config.clientSecret = $secret)
+       ]' \
+     "${SSM_FILE}" > "${TMP_FILE}"
+  mv "${TMP_FILE}" "${SSM_FILE}"
+  echo "→ Patched Google IdP configuration"
+}
+
+# Main logic
 if [[ -n "${FEDERATE_LDAP}" ]]; then
-	sed -i 's/"org.keycloak.storage.UserStorageProvider" : \[ \],/"org.keycloak.storage.UserStorageProvider" : [ {\n      "id" : "bb79294b-c0dd-4dfe-8ccf-c1a1e9274ce9",\n      "name" : "ucams",\n      "providerId" : "ldap",\n      "subComponents" : {\n        "org.keycloak.storage.ldap.mappers.LDAPStorageMapper" : [ {\n          "id" : "e0f2b780-5785-461a-a0cf-0200f8527ca4",\n          "name" : "username",\n          "providerId" : "user-attribute-ldap-mapper",\n          "subComponents" : { },\n          "config" : {\n            "ldap.attribute" : [ "uid" ],\n            "is.mandatory.in.ldap" : [ "true" ],\n            "read.only" : [ "true" ],\n            "always.read.value.from.ldap" : [ "false" ],\n            "user.model.attribute" : [ "username" ]\n          }\n        }, {\n          "id" : "cdffff44-5447-4fe8-8515-7f5804bec573",\n          "name" : "email",\n          "providerId" : "user-attribute-ldap-mapper",\n          "subComponents" : { },\n          "config" : {\n            "ldap.attribute" : [ "mail" ],\n            "is.mandatory.in.ldap" : [ "false" ],\n            "always.read.value.from.ldap" : [ "false" ],\n            "read.only" : [ "true" ],\n            "user.model.attribute" : [ "email" ]\n          }\n        }, {\n          "id" : "a4e55381-16c7-42fa-8153-bf9b61e4caa2",\n          "name" : "last name",\n          "providerId" : "user-attribute-ldap-mapper",\n          "subComponents" : { },\n          "config" : {\n            "ldap.attribute" : [ "sn" ],\n            "is.mandatory.in.ldap" : [ "true" ],\n            "always.read.value.from.ldap" : [ "true" ],\n            "read.only" : [ "true" ],\n            "user.model.attribute" : [ "lastName" ]\n          }\n        }, {\n          "id" : "b65e02db-34e9-4853-a6b6-1a16dd88fc6d",\n          "name" : "first name",\n          "providerId" : "user-attribute-ldap-mapper",\n          "subComponents" : { },\n          "config" : {\n            "ldap.attribute" : [ "cn" ],\n            "is.mandatory.in.ldap" : [ "true" ],\n            "always.read.value.from.ldap" : [ "true" ],\n            "read.only" : [ "true" ],\n            "user.model.attribute" : [ "firstName" ]\n          }\n        }, {\n          "id" : "09c1867d-8b90-460c-a1f1-0880a814316c",\n          "name" : "modify date",\n          "providerId" : "user-attribute-ldap-mapper",\n          "subComponents" : { },\n          "config" : {\n            "ldap.attribute" : [ "modifyTimestamp" ],\n            "is.mandatory.in.ldap" : [ "false" ],\n            "read.only" : [ "true" ],\n            "always.read.value.from.ldap" : [ "true" ],\n            "user.model.attribute" : [ "modifyTimestamp" ]\n          }\n        }, {\n          "id" : "e9ad4747-bd0c-4722-acc0-6ff8f3a99689",\n          "name" : "creation date",\n          "providerId" : "user-attribute-ldap-mapper",\n          "subComponents" : { },\n          "config" : {\n            "ldap.attribute" : [ "createTimestamp" ],\n            "is.mandatory.in.ldap" : [ "false" ],\n            "read.only" : [ "true" ],\n            "always.read.value.from.ldap" : [ "true" ],\n            "user.model.attribute" : [ "createTimestamp" ]\n          }\n        } ]\n      },\n      "config" : {\n        "fullSyncPeriod" : [ "-1" ],\n        "pagination" : [ "false" ],\n        "startTls" : [ "false" ],\n        "useTruststoreSpi" : [ "ldapsOnly" ],\n        "usePasswordModifyExtendedOp" : [ "false" ],\n        "usersDn" : [ "USERSDN_REPLACEMENT" ],\n        "connectionPooling" : [ "false" ],\n        "cachePolicy" : [ "DEFAULT" ],\n        "useKerberosForPasswordAuthentication" : [ "false" ],\n        "trustEmail" : [ "false" ],\n        "importEnabled" : [ "true" ],\n        "enabled" : [ "true" ],\n        "userObjectClasses" : [ "inetOrgPerson, organizationalPerson" ],\n        "changedSyncPeriod" : [ "-1" ],\n        "usernameLDAPAttribute" : [ "uid" ],\n        "rdnLDAPAttribute" : [ "uid" ],\n        "vendor" : [ "other" ],\n        "editMode" : [ "READ_ONLY" ],\n        "uuidLDAPAttribute" : [ "entryUUID" ],\n        "allowKerberosAuthentication" : [ "false" ],\n        "connectionUrl" : [ "LDAP_URL_REPLACEMENT" ],\n        "validatePasswordPolicy" : [ "false" ],\n        "authType" : [ "none" ]\n      }\n    } ],/g' /ssm.json 
-	sed -i "s@LDAP_URL_REPLACEMENT@${LDAP_URL}@g" /ssm.json
-	sed -i "s/USERSDN_REPLACEMENT/${USERSDN}/g" /ssm.json
-fi
-if [[ -n "${GOOGLE_IDP}" ]]; then
-	sed -i 's/"identityProviders" : \[ \]/"identityProviders" : [ {\n    "alias" : "google",\n    "internalId" : "39e6aad7-de24-475e-af7a-c3f35a9cf7e3",\n    "providerId" : "google",\n    "enabled" : true,\n    "updateProfileFirstLoginMode" : "on",\n    "trustEmail" : false,\n    "storeToken" : false,\n    "addReadTokenRoleOnCreate" : false,\n    "authenticateByDefault" : false,\n    "linkOnly" : false,\n    "firstBrokerLoginFlowAlias" : "first broker login",\n    "config" : {\n      "hideOnLoginPage" : "false",\n      "offlineAccess" : "false",\n      "acceptsPromptNoneForwardFromClient" : "false",\n      "clientId" : "GOOGLE_CLIENT_ID_REPLACEMENT",\n      "disableUserInfo" : "false",\n      "syncMode" : "IMPORT",\n      "userIp" : "false",\n      "clientSecret" : "GOOGLE_SECRET_REPLACEMENT"\n    }\n  } ]/g' /ssm.json 
-	sed -i "s/GOOGLE_CLIENT_ID_REPLACEMENT/${GOOGLE_CLIENT_ID}/g" /ssm.json
-	sed -i "s/GOOGLE_SECRET_REPLACEMENT/${GOOGLE_SECRET}/g" /ssm.json
-fi
-/opt/keycloak/bin/kc.sh import --file /ssm.json --override true
-if [[ -n "${HTTPS}" ]]; then
-	/opt/keycloak/bin/kc.sh start --db ${KC_DB} --db-url ${KC_DB_URL} --db-username ${KC_DB_USERNAME} --db-password ${KC_DB_PASSWORD} --hostname ${HOSTNAME} --http-relative-path ${RELATIVE_PATH} --https-key-store-file=conf/server.keystore
-else
-	/opt/keycloak/bin/kc.sh start-dev --db ${KC_DB} --db-url ${KC_DB_URL} --db-username ${KC_DB_USERNAME} --db-password ${KC_DB_PASSWORD} --hostname ${HOSTNAME} --http-relative-path ${RELATIVE_PATH} --http-enabled=true --https-key-store-file=conf/server.keystore
+  patch_ldap
 fi
 
+if [[ -n "${GOOGLE_IDP}" ]]; then
+  patch_google
+fi
+
+echo "✔ ssm.json updated successfully"
+
+# Import realms JSON
+/opt/keycloak/bin/kc.sh import --file "${SSM_FILE}" --override true
+
+# Decide on Keycloak start command (dev-mode or normal)
+cmd="start"
+[[ "${DEV_MODE,,}" == "true" ]] && cmd="start-dev"
+
+# Start server
+exec /opt/keycloak/bin/kc.sh "$cmd" \
+  --db "${KC_DB}" \
+  --db-url "${KC_DB_URL}" \
+  --db-username "${KC_DB_USERNAME}" \
+  --db-password "${KC_DB_PASSWORD}" \
+  --hostname "${HOSTNAME}" \
+  --http-relative-path "${RELATIVE_PATH}" \
+  --http-enabled="${HTTP_ENABLED}" \
+  --https-key-store-file=conf/server.keystore

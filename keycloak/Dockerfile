@@ -15,7 +15,7 @@ USER root
 #ENV GOOGLE_IDP
 #ENV GOOGLE_CLIENT_ID
 #ENV GOOGLE_SECRET
-#ENV HTTPS
+#ENV HTTP_ENABLED
 
 # Replace this with real TLS certificates
 #ADD clientkeystore conf/server.keystore
