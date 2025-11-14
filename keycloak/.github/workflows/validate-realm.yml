@@ -33,11 +33,10 @@ jobs:
             jq empty "$f"
           done
 
-      - name: Generate patched ssm.json and validate
+      - name: Generate patched ssm.json and validate (default)
         if: always()
         run: |
           set -euo pipefail
-          # If the generator exists, run it and validate the resulting JSON
           if [ -x scripts/generate_ssm.sh ]; then
             echo "Generating patched ssm.json (no env vars set)"
             scripts/generate_ssm.sh > /tmp/ssm.generated.json
@@ -46,3 +45,61 @@ jobs:
           else
             echo "No generator script found; skipping generated ssm.json validation"
           fi
+
+  validate-generated:
+    name: Validate generated ssm.json with example envs
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        case: [ldap, google]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Run generator with example envs and validate
+        env:
+          # default empty envs (overridden per matrix below)
+          FEDERATE_LDAP: ""
+          LDAP_URL: ""
+          USERSDN: ""
+          GOOGLE_IDP: ""
+          GOOGLE_CLIENT_ID: ""
+          GOOGLE_SECRET: ""
+        run: |
+          set -euo pipefail
+          case "${{ matrix.case }}" in
+            ldap)
+              echo "Testing LDAP patch case"
+              FEDERATE_LDAP=true LDAP_URL="ldap://ldap.example.local" USERSDN="dc=example,dc=local" \
+                scripts/generate_ssm.sh > /tmp/ssm.generated.json
+              jq empty /tmp/ssm.generated.json
+              # Assert the LDAP URL was inserted into components[0].config.connectionUrl[0]
+              jj=$(jq -r '.components[0].config.connectionUrl[0] // empty' /tmp/ssm.generated.json)
+              echo "connectionUrl[0]=${jj}"
+              if [ "${jj}" != "ldap://ldap.example.local" ]; then
+                echo "ERROR: LDAP URL not found in generated ssm.json" >&2
+                exit 1
+              fi
+              ;;
+            google)
+              echo "Testing Google IdP patch case"
+              GOOGLE_IDP=true GOOGLE_CLIENT_ID="ci-client-id" GOOGLE_SECRET="ci-secret" \
+                scripts/generate_ssm.sh > /tmp/ssm.generated.json
+              jq empty /tmp/ssm.generated.json
+              # Assert client ID was inserted into identityProviders[0].config.clientId
+              cid=$(jq -r '.identityProviders[0].config.clientId // empty' /tmp/ssm.generated.json)
+              echo "clientId=${cid}"
+              if [ "${cid}" != "ci-client-id" ]; then
+                echo "ERROR: Google clientId not set in generated ssm.json" >&2
+                exit 1
+              fi
+              ;;
+            *)
+              echo "Unknown case: ${{ matrix.case }}" >&2
+              exit 1
+              ;;
+          esac
+        shell: bash
