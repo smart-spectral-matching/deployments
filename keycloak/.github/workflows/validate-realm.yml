@@ -51,7 +51,28 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        case: [ldap, google]
+        case: [ldap, google, both]
+                both)
+                  echo "Testing combined LDAP+Google patch case"
+                  FEDERATE_LDAP=true LDAP_URL="ldap://ldap.example.local" USERSDN="dc=example,dc=local" \
+                    GOOGLE_IDP=true GOOGLE_CLIENT_ID="ci-client-id" GOOGLE_SECRET="ci-secret" \
+                    scripts/generate_ssm.sh > /tmp/ssm.generated.json
+                  jq empty /tmp/ssm.generated.json
+                  # Check LDAP URL
+                  jj=$(jq -r '.components[0].config.connectionUrl[0] // empty' /tmp/ssm.generated.json)
+                  echo "connectionUrl[0]=${jj}"
+                  if [ "${jj}" != "ldap://ldap.example.local" ]; then
+                    echo "ERROR: LDAP URL not found in generated ssm.json" >&2
+                    exit 1
+                  fi
+                  # Check Google clientId
+                  cid=$(jq -r '.identityProviders[0].config.clientId // empty' /tmp/ssm.generated.json)
+                  echo "clientId=${cid}"
+                  if [ "${cid}" != "ci-client-id" ]; then
+                    echo "ERROR: Google clientId not set in generated ssm.json" >&2
+                    exit 1
+                  fi
+                  ;;
     steps:
       - name: Checkout
         uses: actions/checkout@v4
