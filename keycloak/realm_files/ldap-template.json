@@ -1,112 +1,39 @@
 {
-  "id": "bb79294b-c0dd-4dfe-8ccf-c1a1e9274ce9",
+  "id": "ldap-ucams-id",
   "name": "ucams",
   "providerId": "ldap",
+  "config": {
+    "connectionUrl": ["LDAP_URL_REPLACEMENT"],
+    "usersDn": ["USERSDN_REPLACEMENT"],
+    "authType": ["none"],
+    "importEnabled": ["true"],
+    "editMode": ["READ_ONLY"],
+    "vendor": ["other"]
+  },
   "subComponents": {
-    "org.keycloak.storage.ldap.mappers.LDAPStorageMapper": [
-      {
-        "id": "e0f2b780-5785-461a-a0cf-0200f8527ca4",
+    "org.keycloak.storage.ldap.mappers.LDAPStorageMapper": {
+      "username": {
+        "id": "mapper-username-id",
         "name": "username",
         "providerId": "user-attribute-ldap-mapper",
-        "subComponents": {},
         "config": {
           "ldap.attribute": ["uid"],
-          "is.mandatory.in.ldap": ["true"],
           "read.only": ["true"],
           "always.read.value.from.ldap": ["false"],
           "user.model.attribute": ["username"]
         }
       },
-      {
-        "id": "cdffff44-5447-4fe8-8515-7f5804bec573",
+      "email": {
+        "id": "mapper-email-id",
         "name": "email",
         "providerId": "user-attribute-ldap-mapper",
-        "subComponents": {},
         "config": {
           "ldap.attribute": ["mail"],
-          "is.mandatory.in.ldap": ["false"],
-          "always.read.value.from.ldap": ["false"],
           "read.only": ["true"],
+          "always.read.value.from.ldap": ["false"],
           "user.model.attribute": ["email"]
         }
-      },
-      {
-        "id": "a4e55381-16c7-42fa-8153-bf9b61e4caa2",
-        "name": "last name",
-        "providerId": "user-attribute-ldap-mapper",
-        "subComponents": {},
-        "config": {
-          "ldap.attribute": ["sn"],
-          "is.mandatory.in.ldap": ["true"],
-          "always.read.value.from.ldap": ["true"],
-          "read.only": ["true"],
-          "user.model.attribute": ["lastName"]
-        }
-      },
-      {
-        "id": "b65e02db-34e9-4853-a6b6-1a16dd88fc6d",
-        "name": "first name",
-        "providerId": "user-attribute-ldap-mapper",
-        "subComponents": {},
-        "config": {
-          "ldap.attribute": ["cn"],
-          "is.mandatory.in.ldap": ["true"],
-          "always.read.value.from.ldap": ["true"],
-          "read.only": ["true"],
-          "user.model.attribute": ["firstName"]
-        }
-      },
-      {
-        "id": "09c1867d-8b90-460c-a1f1-0880a814316c",
-        "name": "modify date",
-        "providerId": "user-attribute-ldap-mapper",
-        "subComponents": {},
-        "config": {
-          "ldap.attribute": ["modifyTimestamp"],
-          "is.mandatory.in.ldap": ["false"],
-          "read.only": ["true"],
-          "always.read.value.from.ldap": ["true"],
-          "user.model.attribute": ["modifyTimestamp"]
-        }
-      },
-      {
-        "id": "e9ad4747-bd0c-4722-acc0-6ff8f3a99689",
-        "name": "creation date",
-        "providerId": "user-attribute-ldap-mapper",
-        "subComponents": {},
-        "config": {
-          "ldap.attribute": ["createTimestamp"],
-          "is.mandatory.in.ldap": ["false"],
-          "read.only": ["true"],
-          "always.read.value.from.ldap": ["true"],
-          "user.model.attribute": ["createTimestamp"]
-        }
       }
-    ]
-  },
-  "config": {
-    "fullSyncPeriod": ["-1"],
-    "pagination": ["false"],
-    "startTls": ["false"],
-    "useTruststoreSpi": ["ldapsOnly"],
-    "usePasswordModifyExtendedOp": ["false"],
-    "usersDn": ["USERSDN_REPLACEMENT"],
-    "connectionPooling": ["false"],
-    "cachePolicy": ["DEFAULT"],
-    "useKerberosForPasswordAuthentication": ["false"],
-    "trustEmail": ["false"],
-    "importEnabled": ["true"],
-    "enabled": ["true"],
-    "userObjectClasses": ["inetOrgPerson, organizationalPerson"],
-    "changedSyncPeriod": ["-1"],
-    "usernameLDAPAttribute": ["uid"],
-    "rdnLDAPAttribute": ["uid"],
-    "vendor": ["other"],
-    "editMode": ["READ_ONLY"],
-    "uuidLDAPAttribute": ["entryUUID"],
-    "allowKerberosAuthentication": ["false"],
-    "connectionUrl": ["LDAP_URL_REPLACEMENT"],
-    "validatePasswordPolicy": ["false"],
-    "authType": ["none"]
+    }
   }
 }
