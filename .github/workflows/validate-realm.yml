@@ -3,10 +3,10 @@ name: Validate Realm JSON
 on:
   push:
     paths:
-      - 'realm_files/**'
+      - 'keycloak/realm_files/**'
   pull_request:
     paths:
-      - 'realm_files/**'
+      - 'keycloak/realm_files/**'
 
 jobs:
   validate:
@@ -23,9 +23,9 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s nullglob
-          files=(realm_files/*.json)
+          files=(keycloak/realm_files/*.json)
           if [ ${#files[@]} -eq 0 ]; then
-            echo "No realm JSON files found in realm_files/"
+            echo "No realm JSON files found in keycloak/realm_files/"
             exit 0
           fi
           for f in "${files[@]}"; do
@@ -37,9 +37,9 @@ jobs:
         if: always()
         run: |
           set -euo pipefail
-          if [ -x scripts/generate_ssm.sh ]; then
+          if [ -x keycloak/scripts/generate_ssm.sh ]; then
             echo "Generating patched ssm.json (no env vars set)"
-            scripts/generate_ssm.sh > /tmp/ssm.generated.json
+            keycloak/scripts/generate_ssm.sh > /tmp/ssm.generated.json
             echo "Validating generated ssm.json"
             jq empty /tmp/ssm.generated.json
           else
@@ -56,7 +56,7 @@ jobs:
                   echo "Testing combined LDAP+Google patch case"
                   FEDERATE_LDAP=true LDAP_URL="ldap://ldap.example.local" USERSDN="dc=example,dc=local" \
                     GOOGLE_IDP=true GOOGLE_CLIENT_ID="ci-client-id" GOOGLE_SECRET="ci-secret" \
-                    scripts/generate_ssm.sh > /tmp/ssm.generated.json
+                    keycloak/scripts/generate_ssm.sh > /tmp/ssm.generated.json
                   jq empty /tmp/ssm.generated.json
                   # Check LDAP URL
                   jj=$(jq -r '.components[0].config.connectionUrl[0] // empty' /tmp/ssm.generated.json)
@@ -95,7 +95,7 @@ jobs:
             ldap)
               echo "Testing LDAP patch case"
               FEDERATE_LDAP=true LDAP_URL="ldap://ldap.example.local" USERSDN="dc=example,dc=local" \
-                scripts/generate_ssm.sh > /tmp/ssm.generated.json
+                keycloak/scripts/generate_ssm.sh > /tmp/ssm.generated.json
               jq empty /tmp/ssm.generated.json
               # Assert the LDAP URL was inserted into components[0].config.connectionUrl[0]
               jj=$(jq -r '.components[0].config.connectionUrl[0] // empty' /tmp/ssm.generated.json)
@@ -108,7 +108,7 @@ jobs:
             google)
               echo "Testing Google IdP patch case"
               GOOGLE_IDP=true GOOGLE_CLIENT_ID="ci-client-id" GOOGLE_SECRET="ci-secret" \
-                scripts/generate_ssm.sh > /tmp/ssm.generated.json
+                keycloak/scripts/generate_ssm.sh > /tmp/ssm.generated.json
               jq empty /tmp/ssm.generated.json
               # Assert client ID was inserted into identityProviders[0].config.clientId
               cid=$(jq -r '.identityProviders[0].config.clientId // empty' /tmp/ssm.generated.json)
